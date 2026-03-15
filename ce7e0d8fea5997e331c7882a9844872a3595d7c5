@@ -1,0 +1,23 @@
+internal/match/serialize.go
+  c105ee165db570dc 8-9,13,17,19,31-32,36-37,42,47-48,51-62,65,79-90,92,97,100,102,105,111,116,122,128-129,137-138,141-142,145-147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "ce7e0d8fea5997e331c7882a9844872a3595d7c5",
+  "prompts": {
+    "c105ee165db570dc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "faf44ea4-6414-418c-b091-9bc86336606c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Andrew Nesbitt <andrewnez@gmail.com>",
+      "messages": [],
+      "total_additions": 71,
+      "total_deletions": 43,
+      "accepted_lines": 69,
+      "overriden_lines": 0
+    }
+  }
+}
