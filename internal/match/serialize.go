@@ -5,15 +5,18 @@
 package match
 
 import (
+	"bytes"
+	"compress/flate"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"slices"
 )
 
-const dfaMagic = "LREDFA01"
+const dfaMagic = "LREDFA02"
 
-// MarshalMultiLRE serializes a MultiLRE into a binary format
+// MarshalMultiLRE serializes a MultiLRE into a compressed binary format
 // that can be loaded back with UnmarshalMultiLRE.
 func MarshalMultiLRE(re *MultiLRE) []byte {
 	words := re.dict.Words()
@@ -25,44 +28,41 @@ func MarshalMultiLRE(re *MultiLRE) []byte {
 	}
 	sortPhrases(starts)
 
-	// Calculate size.
-	dictBytes := 0
-	for _, w := range words {
-		dictBytes += 2 + len(w) // uint16 length + UTF-8 bytes
-	}
-	size := 8 + 12 + dictBytes + len(re.dfa)*4 + len(starts)*8
-
-	buf := make([]byte, 0, size)
-
-	// Magic.
-	buf = append(buf, dfaMagic...)
-
-	// Header: dictLen, dfaLen, startLen.
-	buf = appendUint32(buf, uint32(len(words)))
-	buf = appendUint32(buf, uint32(len(re.dfa)))
-	buf = appendUint32(buf, uint32(len(starts)))
+	// Build the uncompressed payload (everything after the header).
+	var payload bytes.Buffer
 
 	// Dict words in insertion order.
 	for _, w := range words {
-		buf = appendUint16(buf, uint16(len(w)))
-		buf = append(buf, w...)
+		writeUint16(&payload, uint16(len(w)))
+		payload.WriteString(w)
 	}
 
 	// DFA as raw int32 values.
 	for _, v := range re.dfa {
-		buf = appendInt32(buf, v)
+		writeInt32(&payload, v)
 	}
 
 	// Start phrases.
 	for _, p := range starts {
-		buf = appendInt32(buf, int32(p[0]))
-		buf = appendInt32(buf, int32(p[1]))
+		writeInt32(&payload, int32(p[0]))
+		writeInt32(&payload, int32(p[1]))
 	}
 
-	return buf
+	// Compress the payload.
+	var out bytes.Buffer
+	out.WriteString(dfaMagic)
+	writeUint32Buf(&out, uint32(len(words)))
+	writeUint32Buf(&out, uint32(len(re.dfa)))
+	writeUint32Buf(&out, uint32(len(starts)))
+
+	w, _ := flate.NewWriter(&out, flate.BestCompression)
+	w.Write(payload.Bytes())
+	w.Close()
+
+	return out.Bytes()
 }
 
-// UnmarshalMultiLRE deserializes a MultiLRE from the binary format
+// UnmarshalMultiLRE deserializes a MultiLRE from the compressed binary format
 // produced by MarshalMultiLRE.
 func UnmarshalMultiLRE(data []byte) (*MultiLRE, error) {
 	if len(data) < 20 {
@@ -76,44 +76,57 @@ func UnmarshalMultiLRE(data []byte) (*MultiLRE, error) {
 	dfaLen := binary.LittleEndian.Uint32(data[12:16])
 	startLen := binary.LittleEndian.Uint32(data[16:20])
 
-	off := 20
+	// Empty DFA (bootstrap/triv file).
+	if dictLen == 0 && dfaLen == 0 && startLen == 0 {
+		return &MultiLRE{dict: new(Dict), start: make(map[phrase]struct{})}, nil
+	}
+
+	// Decompress the payload.
+	r := flate.NewReader(bytes.NewReader(data[20:]))
+	payload, err := io.ReadAll(r)
+	r.Close()
+	if err != nil {
+		return nil, fmt.Errorf("match: decompressing DFA: %v", err)
+	}
+
+	off := 0
 
 	// Reconstruct Dict by inserting words in order.
 	d := new(Dict)
 	for i := uint32(0); i < dictLen; i++ {
-		if off+2 > len(data) {
+		if off+2 > len(payload) {
 			return nil, errors.New("match: DFA data truncated in dict")
 		}
-		wlen := int(binary.LittleEndian.Uint16(data[off : off+2]))
+		wlen := int(binary.LittleEndian.Uint16(payload[off : off+2]))
 		off += 2
-		if off+wlen > len(data) {
+		if off+wlen > len(payload) {
 			return nil, errors.New("match: DFA data truncated in dict word")
 		}
-		d.Insert(string(data[off : off+wlen]))
+		d.Insert(string(payload[off : off+wlen]))
 		off += wlen
 	}
 
 	// Read DFA.
 	dfaBytes := int(dfaLen) * 4
-	if off+dfaBytes > len(data) {
+	if off+dfaBytes > len(payload) {
 		return nil, errors.New("match: DFA data truncated in DFA")
 	}
 	dfa := make(reDFA, dfaLen)
 	for i := range dfa {
-		dfa[i] = int32(binary.LittleEndian.Uint32(data[off : off+4]))
+		dfa[i] = int32(binary.LittleEndian.Uint32(payload[off : off+4]))
 		off += 4
 	}
 
 	// Read start phrases.
 	startBytes := int(startLen) * 8
-	if off+startBytes > len(data) {
+	if off+startBytes > len(payload) {
 		return nil, errors.New("match: DFA data truncated in start phrases")
 	}
 	start := make(map[phrase]struct{}, startLen)
 	for i := uint32(0); i < startLen; i++ {
 		var p phrase
-		p[0] = WordID(int32(binary.LittleEndian.Uint32(data[off : off+4])))
-		p[1] = WordID(int32(binary.LittleEndian.Uint32(data[off+4 : off+8])))
+		p[0] = WordID(int32(binary.LittleEndian.Uint32(payload[off : off+4])))
+		p[1] = WordID(int32(binary.LittleEndian.Uint32(payload[off+4 : off+8])))
 		start[p] = struct{}{}
 		off += 8
 	}
@@ -121,16 +134,17 @@ func UnmarshalMultiLRE(data []byte) (*MultiLRE, error) {
 	return &MultiLRE{dict: d, dfa: dfa, start: start}, nil
 }
 
-func appendUint16(buf []byte, v uint16) []byte {
-	return append(buf, byte(v), byte(v>>8))
+func writeUint16(buf *bytes.Buffer, v uint16) {
+	buf.Write([]byte{byte(v), byte(v >> 8)})
 }
 
-func appendUint32(buf []byte, v uint32) []byte {
-	return append(buf, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
+func writeUint32Buf(buf *bytes.Buffer, v uint32) {
+	buf.Write([]byte{byte(v), byte(v >> 8), byte(v >> 16), byte(v >> 24)})
 }
 
-func appendInt32(buf []byte, v int32) []byte {
-	return appendUint32(buf, uint32(v))
+func writeInt32(buf *bytes.Buffer, v int32) {
+	u := uint32(v)
+	buf.Write([]byte{byte(u), byte(u >> 8), byte(u >> 16), byte(u >> 24)})
 }
 
 func sortPhrases(ps []phrase) {
