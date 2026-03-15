@@ -1,0 +1,37 @@
+license_test.go
+  b3f425c6cb189b6e 18,48,231,251
+scan.go
+  b3f425c6cb189b6e 12,16,125-130
+README.md
+  b3f425c6cb189b6e 7
+old/license_test.go
+  b3f425c6cb189b6e 18,48,261
+internal/match/dict_test.go
+  b3f425c6cb189b6e 8,263
+licenses/README.md
+  b3f425c6cb189b6e 3,306
+gen_data.go
+  b3f425c6cb189b6e 5,20,26,62,72
+go.mod
+  b3f425c6cb189b6e 1,3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "2ad32fec7a2f5ea8b6bc1125db2abfe410c88f6b",
+  "prompts": {
+    "b3f425c6cb189b6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e2b30f55-901b-40ce-a80a-68dc50f43a04",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Andrew Nesbitt <andrewnez@gmail.com>",
+      "messages": [],
+      "total_additions": 33,
+      "total_deletions": 30,
+      "accepted_lines": 27,
+      "overriden_lines": 0
+    }
+  }
+}
