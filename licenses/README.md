@@ -1,6 +1,6 @@
 # Licensecheck: Built-In Licenses
 
-This directory contains the definitions of the licenses built into [github.com/google/licensecheck](../README.md).
+This directory contains the definitions of the licenses built into [github.com/git-pkgs/licensecheck](../README.md).
 To add new licenses, see the “[Adding new built-in licenses](#adding-new-built-in-licenses)” section below.
 
 It is a goal to incorporate the entire [SPDX license list and IDs](https://spdx.dev/licenses/)
@@ -303,5 +303,5 @@ so that common pieces can be factored out
 After editing files in this directory, run `go generate` in the licensecheck (parent) directory.
 
 Note that when using
-[licensecheck.NewScanner](https://pkg.go.dev/github.com/google/licensecheck/#NewScanner),
+[licensecheck.NewScanner](https://pkg.go.dev/github.com/git-pkgs/licensecheck/#NewScanner),
 the input is plain LRE, not template text.

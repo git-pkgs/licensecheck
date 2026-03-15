@@ -5,7 +5,7 @@
 package match
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -18,7 +18,7 @@ func TestDict(t *testing.T) {
 	indexes := []WordID{0, 1, 2, 1, 3, 0}
 
 	var d Dict
-	for j := 0; j < 2; j++ {
+	for range 2 {
 		for i, w := range words {
 			id := d.Insert(w)
 			if id != indexes[i] {
@@ -260,7 +260,7 @@ func benchSetup(b *testing.B) {
 		b.Fatal(err)
 	}
 	for _, file := range files {
-		data, err := ioutil.ReadFile(file)
+		data, err := os.ReadFile(file)
 		if err != nil {
 			b.Fatal(err)
 		}

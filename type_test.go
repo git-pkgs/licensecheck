@@ -15,7 +15,7 @@ func TestTypeString(t *testing.T) {
 	}
 
 	numError := 0
-	for typ := Type(0); typ < Discouraged+100; typ++ {
+	for typ := range Discouraged + 100 {
 		s := typ.String()
 		ptyp, err := ParseType(s)
 		if err != nil {

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -16,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/licensecheck/internal/match"
+	"github.com/git-pkgs/licensecheck/internal/match"
 )
 
 func init() {
@@ -43,22 +42,21 @@ func TestTestdata(t *testing.T) {
 		if !strings.Contains(file, ".t") {
 			t.Errorf("unexpected file: %v", file)
 		}
-		file := file
 		t.Run(name, func(t *testing.T) {
 			t.Parallel() // faster and tests for races in parallel usage
 
-			data, err := ioutil.ReadFile(file)
+			data, err := os.ReadFile(file)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			// See testdata/README for definition of test data file.
 			// Header ends at blank line.
-			i := bytes.Index(data, []byte("\n\n"))
-			if i < 0 {
+			before, after, ok := bytes.Cut(data, []byte("\n\n"))
+			if !ok {
 				t.Fatalf("%s: invalid test data file: no blank line terminating header", file)
 			}
-			hdr, data := strings.Split(string(data[:i]), "\n"), data[i+2:]
+			hdr, data := strings.Split(string(before), "\n"), after
 
 			lineno := 1
 			// Skip leading comment lines.
@@ -181,19 +179,19 @@ func parsePercent(s string) (float64, error) {
 // parseRange parses a start,end range (two decimals separated by a comma).
 // As a special case, the second decimal can be $ meaning end-of-file.
 func parseRange(s string, end int) (int, int, error) {
-	i := strings.Index(s, ",")
-	if i < 0 {
+	before, after, ok := strings.Cut(s, ",")
+	if !ok {
 		return 0, 0, fmt.Errorf("malformed range")
 	}
-	lo, err := strconv.Atoi(s[:i])
+	lo, err := strconv.Atoi(before)
 	if err != nil {
 		return 0, 0, err
 	}
 	var hi int
-	if s[i+1:] == "$" {
+	if after == "$" {
 		hi = end
 	} else {
-		hi, err = strconv.Atoi(s[i+1:])
+		hi, err = strconv.Atoi(after)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -230,7 +228,7 @@ func BenchmarkScanTestdata(b *testing.B) {
 			if info, err := os.Stat(file); err == nil && info.IsDir() {
 				continue
 			}
-			data, err := ioutil.ReadFile(file)
+			data, err := os.ReadFile(file)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -250,7 +248,7 @@ func TestTrace(t *testing.T) {
 	if *trace == "" {
 		t.Skip("-tr not given")
 	}
-	data, err := ioutil.ReadFile(*trace)
+	data, err := os.ReadFile(*trace)
 	if err != nil {
 		t.Fatal(err)
 	}

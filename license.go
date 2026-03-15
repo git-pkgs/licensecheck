@@ -5,7 +5,7 @@
 // Package licensecheck classifies license files and heuristically determines
 // how well they correspond to known open source licenses.
 //
-// Scanning
+// # Scanning
 //
 // A text (a slice of bytes) can be scanned for known licenses by calling Scan.
 // The resulting Coverage structure describes all the matches found as well
@@ -28,7 +28,7 @@
 // expressions (LREs).
 // BuiltinLicenses returns the set of license patterns used by Scan.
 //
-// License Regular Expressions
+// # License Regular Expressions
 //
 // Each license to be recognized is specified by writing a license regular
 // expression (LRE) for it. The pattern syntax and the matching are word-based and
@@ -36,13 +36,13 @@
 //
 // The valid LRE patterns are:
 //
-//  - word, a single case-insensitive word
-//  - __N__, any sequence of up to N words
-//  - expr1 expr2, concatenation of two expressions
-//  - expr1 || expr2, alternation of two expressions
-//  - (( expr )), grouping
-//  - (( expr ))??, zero or one instances of the grouped expression
-//  - //** text **//, a comment ignored by the parser
+//   - word, a single case-insensitive word
+//   - __N__, any sequence of up to N words
+//   - expr1 expr2, concatenation of two expressions
+//   - expr1 || expr2, alternation of two expressions
+//   - (( expr )), grouping
+//   - (( expr ))??, zero or one instances of the grouped expression
+//   - //** text **//, a comment ignored by the parser
 //
 // To make patterns harder to misread in large texts:
 // (( must only appear at the start of a line (possibly indented);
@@ -51,21 +51,20 @@
 //
 // For example:
 //
-// 	//** https://en.wikipedia.org/wiki/Filler_text **//
-// 	Now is
-// 	((not))??
-// 	the time for all good
-// 	((men || women || people))
-// 	to come to the aid of their __1__.
+//	//** https://en.wikipedia.org/wiki/Filler_text **//
+//	Now is
+//	((not))??
+//	the time for all good
+//	((men || women || people))
+//	to come to the aid of their __1__.
 //
-// The old Cover and Checker API
+// # The old Cover and Checker API
 //
 // An older, less precise matcher using the names Cover, New, and Checker
 // was removed from this package.
 // Use v0.1.0 for the final version of that API,
 // or use the copy in the package "old" underneath this one
 // for easier comparison with this API.
-//
 package licensecheck
 
 import (
@@ -210,17 +209,17 @@ func (t Type) String() string {
 	if t == 0 {
 		return "Unknown"
 	}
-	s := ""
+	var s strings.Builder
 	for _, b := range typeBits {
 		if b.t != 0 && t&b.t == b.t {
 			t &^= b.t
-			s += "|" + b.s
+			s.WriteString("|" + b.s)
 		}
 	}
 	if t != 0 {
-		s += fmt.Sprintf("|Type(%#x)", uint(t))
+		s.WriteString(fmt.Sprintf("|Type(%#x)", uint(t)))
 	}
-	return s[1:]
+	return s.String()[1:]
 }
 
 // ParseType parses s into a Type.
@@ -228,7 +227,7 @@ func (t Type) String() string {
 func ParseType(s string) (Type, error) {
 	var t Type
 Fields:
-	for _, f := range strings.Split(s, "|") {
+	for f := range strings.SplitSeq(s, "|") {
 		for _, b := range typeBits {
 			if b.s == f {
 				t |= b.t

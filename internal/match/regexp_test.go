@@ -27,7 +27,7 @@ func TestMultiLREMatch(t *testing.T) {
 	for id, tt := range multiMatchTests {
 		t.Run(fmt.Sprint(id), func(t *testing.T) {
 			var list []*LRE
-			for _, expr := range strings.Split(tt.re, "/") {
+			for expr := range strings.SplitSeq(tt.re, "/") {
 				re, err := ParseLRE(&d, "x", expr)
 				if err != nil {
 					t.Fatalf("Parse(%q): %v", expr, err)

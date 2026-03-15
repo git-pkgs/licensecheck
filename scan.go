@@ -9,10 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"sync"
 
-	"github.com/google/licensecheck/internal/match"
+	"github.com/git-pkgs/licensecheck/internal/match"
 )
 
 var (
@@ -110,7 +111,6 @@ const maxCopyrightWords = 50
 // disjoint matches. If multiple licenses match a particular section of the input,
 // the earliest match is chosen so the returned coverage describes at most one
 // match for each section of the input.
-//
 func Scan(text []byte) Coverage {
 	return builtinScanner.Scan(text)
 }
@@ -122,6 +122,12 @@ var urlScanRE = regexp.MustCompile(`^(?i)https?://[-a-z0-9_.]+\.(org|com)(/[-a-z
 func (s *Scanner) Scan(text []byte) Coverage {
 	if s == builtinScanner {
 		builtinScannerOnce.Do(func() {
+			// Disable GC during init. Building the DFA allocates heavily
+			// (~274MB) and all of it stays live, so collecting mid-build
+			// is wasted work. Particularly noticeable with low GOGC or
+			// GOMEMLIMIT settings.
+			prev := debug.SetGCPercent(-1)
+			defer debug.SetGCPercent(prev)
 			if err := builtinScanner.init(BuiltinLicenses()); err != nil {
 				panic("licensecheck: initializing Scan: " + err.Error())
 			}
@@ -142,10 +148,7 @@ func (s *Scanner) Scan(text []byte) Coverage {
 
 	for _, m := range matches.List {
 		if m.Start < len(words) && lastEnd < m.Start && copyright >= 0 {
-			limit := m.Start - maxCopyrightWords
-			if limit < lastEnd {
-				limit = lastEnd
-			}
+			limit := max(m.Start-maxCopyrightWords, lastEnd)
 			for i := limit; i < m.Start; i++ {
 				if words[i].ID == copyright {
 					m.Start = i

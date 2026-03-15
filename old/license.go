@@ -46,7 +46,7 @@ const (
 )
 
 func licenseType(name string) Type {
-	for l := Type(0); l < NumTypes; l++ {
+	for l := range NumTypes {
 		if strings.HasPrefix(name, l.String()) {
 			return l
 		}
@@ -192,7 +192,6 @@ func (c *Checker) updateIndex(id int32, words []int32) {
 // match a particular section of the input, the best match
 // is chosen so the returned coverage describes at most
 // one match for each section of the input.
-//
 func Cover(input []byte, opts Options) (Coverage, bool) {
 	return builtin.Cover(input, opts)
 }
@@ -597,10 +596,7 @@ func (c *Checker) submatches(text []int32, opts Options) []submatch {
 			// over multiple nearby blanks, such as in licenses/ISC.
 		BlankLoop:
 			for matchLicenseStart >= 2 && l.doc.words[matchLicenseStart-1] == blankID && l.doc.words[matchLicenseStart-2] != blankID {
-				min := start - blankMax
-				if min < 0 {
-					min = 0
-				}
+				min := max(start-blankMax, 0)
 				if i := byLicense[licenseID]; i >= 0 && min < matches[i].end {
 					min = matches[i].end
 				}

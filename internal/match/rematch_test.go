@@ -337,10 +337,10 @@ The name __10__ may not be used.
 
 func TestCompile(t *testing.T) {
 	var d Dict
-	for _, tt := range strings.Split(compileTests, "\n\n") {
+	for tt := range strings.SplitSeq(compileTests, "\n\n") {
 		tt = strings.TrimSpace(tt) + "\n"
-		i := strings.Index(tt, "\n")
-		in, want := tt[:i], tt[i+1:]
+		before, after, _ := strings.Cut(tt, "\n")
+		in, want := before, after
 
 		prog := testProg(t, &d, in)
 		if prog == nil {
@@ -356,7 +356,7 @@ func TestCompile(t *testing.T) {
 func testProg(t *testing.T, dict *Dict, expr string) reProg {
 	if strings.Contains(expr, "/") {
 		var list []reProg
-		for _, str := range strings.Split(expr, "/") {
+		for str := range strings.SplitSeq(expr, "/") {
 			re, err := reParse(dict, str, false)
 			if err != nil {
 				t.Errorf("Parse(%q): %v", expr, err)
@@ -567,10 +567,10 @@ The name __10__ may not be used
 
 func TestCompileDFA(t *testing.T) {
 	var d Dict
-	for _, tt := range strings.Split(compileDFATests, "\n\n") {
+	for tt := range strings.SplitSeq(compileDFATests, "\n\n") {
 		tt = strings.TrimSpace(tt) + "\n"
-		i := strings.Index(tt, "\n")
-		in, want := tt[:i], tt[i+1:]
+		before, after, _ := strings.Cut(tt, "\n")
+		in, want := before, after
 
 		prog := testProg(t, &d, in)
 		if prog == nil {

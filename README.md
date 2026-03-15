@@ -4,7 +4,7 @@ The `licensecheck` package scans source texts for known licenses.
 The design aims never to give a false positive.
 It also reports matches of known license URLs.
 
-See the [package documentation](https://pkg.go.dev/github.com/google/licensecheck)
+See the [package documentation](https://pkg.go.dev/github.com/git-pkgs/licensecheck)
 for API details.
 
 The license scanner recognizes nearly all the licenses gathered by the SPDX project,

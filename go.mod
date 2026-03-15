@@ -1,3 +1,3 @@
-module github.com/google/licensecheck
+module github.com/git-pkgs/licensecheck
 
-go 1.12
+go 1.25

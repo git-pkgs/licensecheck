@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ignore
+//go:build ignore
 
 // This file generates data.gen.go.
 // It embeds the text of all the licenses in the subdirectory "licenses"
@@ -16,14 +16,14 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
 
-	"github.com/google/licensecheck"
+	"github.com/git-pkgs/licensecheck"
 )
 
 var outFile = flag.String("o", "data.gen.go", "`file` to write")
@@ -59,7 +59,7 @@ func main() {
 
 	src, err := format.Source([]byte(code))
 	if err != nil {
-		fd, err1 := ioutil.TempFile("", "license-data")
+		fd, err1 := os.CreateTemp("", "license-data")
 		if err1 == nil {
 			_, err1 = fd.Write([]byte(code))
 			if err1 == nil {
@@ -69,7 +69,7 @@ func main() {
 		}
 		log.Fatal("parsing output:", err)
 	}
-	err = ioutil.WriteFile(*outFile, src, 0644)
+	err = os.WriteFile(*outFile, src, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}

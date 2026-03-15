@@ -200,6 +200,7 @@ package match
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -436,12 +437,7 @@ func (c *reCompile) mergeCut(cut1, cut2 []reCut) []reCut {
 func canMatchEmpty(re *reSyntax) bool {
 	switch re.op {
 	case opAlternate:
-		for _, sub := range re.sub {
-			if canMatchEmpty(sub) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(re.sub, canMatchEmpty)
 
 	case opConcat:
 		for _, sub := range re.sub {
@@ -512,10 +508,8 @@ func (s *nfaState) add(prog reProg, pc int32) {
 	// where we are in the list. If this ever showed up as expensive
 	// on a profile, we could switch to a sparse set instead;
 	// see https://research.swtch.com/sparse.
-	for _, old := range *s {
-		if old == pc {
-			return
-		}
+	if slices.Contains(*s, pc) {
+		return
 	}
 
 	*s = append(*s, pc)
@@ -660,18 +654,17 @@ func (s nfaState) appendEncoding(enc []byte) []byte {
 //
 // The encoding of this state information is:
 //
-//	-  a one-word header M | N<<1, where M is 0 for a non-match, 1 for a match,
-//	   and N is the number of words in the table.
-//	   This header is conveniently also the number of words that follow in the encoding.
+//   - a one-word header M | N<<1, where M is 0 for a non-match, 1 for a match,
+//     and N is the number of words in the table.
+//     This header is conveniently also the number of words that follow in the encoding.
 //
-//	- if M == 1, a one-word value V that is the match value to report,
-//	  identifying which of a set of regexps has been matched.
+//   - if M == 1, a one-word value V that is the match value to report,
+//     identifying which of a set of regexps has been matched.
 //
-//	- N two-word pairs W:NEXT indicating that if word W is seen, the DFA should
-//	  move to the state at offset NEXT. The pairs are sorted by W. An entry for W == AnyWord
-//	  is treated as matching any input word; an exact match later in the list takes priority.
-//	  The list is sorted by W, so AnyWord is always first if present.
-//
+//   - N two-word pairs W:NEXT indicating that if word W is seen, the DFA should
+//     move to the state at offset NEXT. The pairs are sorted by W. An entry for W == AnyWord
+//     is treated as matching any input word; an exact match later in the list takes priority.
+//     The list is sorted by W, so AnyWord is always first if present.
 type reDFA []int32
 
 // A dfaBuilder holds state for building a DFA from a reProg.
@@ -784,7 +777,6 @@ func (dfa reDFA) string(d *Dict) string {
 //			off = dnext
 //		}
 //	}
-//
 func (dfa reDFA) stateAt(off int32) (match int32, delta []int32) {
 	hdr := dfa[off]
 	off++
@@ -908,10 +900,7 @@ Words:
 			// the last time we saw a matching state),
 			// print information about it.
 			if TraceDFA > 0 && i-end >= TraceDFA {
-				start := i - 10
-				if start < 0 {
-					start = 0
-				}
+				start := max(i-10, 0)
 				print("DFA mismatch at «",
 					text[words[start].Lo:words[i].Lo], "|",
 					text[words[i].Lo:words[i].Hi], "»\n")
@@ -932,25 +921,18 @@ Words:
 		end = len(words)
 	}
 	if i := len(words); TraceDFA > 0 && i-end >= TraceDFA {
-		start := i - 10
-		if start < 0 {
-			start = 0
-		}
+		start := max(i-10, 0)
 		println("DFA ran out of input at «", text[words[start].Lo:], "|", "EOF", "»\n")
 	}
 	return match, end
 }
 
 func sortInt32s(x []int32) {
-	sort.Slice(x, func(i, j int) bool {
-		return x[i] < x[j]
-	})
+	slices.Sort(x)
 }
 
 func sortWordIDs(x []WordID) {
-	sort.Slice(x, func(i, j int) bool {
-		return x[i] < x[j]
-	})
+	slices.Sort(x)
 }
 
 // canMisspell reports whether want can be misspelled as have.

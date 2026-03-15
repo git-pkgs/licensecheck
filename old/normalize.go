@@ -130,7 +130,7 @@ const maxListMarkerLength = 4
 var listMarker = func() map[string]bool {
 	const allListMarkers = "a b c d e f g h i j k l m n o p q r ii iii iv vi vii viii ix xi xii xiii xiv xv"
 	l := map[string]bool{}
-	for _, marker := range strings.Split(allListMarkers, " ") {
+	for marker := range strings.SplitSeq(allListMarkers, " ") {
 		if len(marker) > maxListMarkerLength {
 			panic("marker too long")
 		}
