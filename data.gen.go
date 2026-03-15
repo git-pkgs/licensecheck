@@ -9186,7 +9186,7 @@ parties intellectual property rights.
 `
 const license_BSD_4_Clause_UC_lre = `
 //**
-BSD 4-Clause (Univeristy of California-Specific)
+BSD 4-Clause (University of California-Specific)
 https://spdx.org/licenses/BSD-4-Clause-UC.json
 http://www.freebsd.org/copyright/license.html
 **//

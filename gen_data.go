@@ -4,7 +4,7 @@
 
 //go:build ignore
 
-// This file generates data.gen.go.
+// This file generates data.gen.go and builtin.dfa.
 // It embeds the text of all the licenses in the subdirectory "licenses"
 // and constructs the data structures to represent them.
 // Run by a "go:generate" comment in license.go.
@@ -24,6 +24,7 @@ import (
 	"text/template"
 
 	"github.com/git-pkgs/licensecheck"
+	"github.com/git-pkgs/licensecheck/internal/match"
 )
 
 var outFile = flag.String("o", "data.gen.go", "`file` to write")
@@ -73,6 +74,28 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Build and write the precomputed DFA.
+	d := new(match.Dict)
+	d.Insert("copyright")
+	d.Insert("http")
+	var lres []*match.LRE
+	for _, file := range builtLRE {
+		re, err := match.ParseLRE(d, file.Name, string(file.Data))
+		if err != nil {
+			log.Fatalf("parsing LRE %s for DFA: %v", file.Name, err)
+		}
+		lres = append(lres, re)
+	}
+	multi, err := match.NewMultiLRE(lres)
+	if err != nil {
+		log.Fatal("building MultiLRE:", err)
+	}
+	dfaData := match.MarshalMultiLRE(multi)
+	if err := os.WriteFile("builtin.dfa", dfaData, 0644); err != nil {
+		log.Fatal("writing builtin.dfa:", err)
+	}
+	log.Printf("builtin.dfa: %d bytes", len(dfaData))
 }
 
 // varName returns the basename of the file, sanitized for use as a variable name,

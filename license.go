@@ -77,6 +77,7 @@ import (
 // gen_data.go imports licensecheck for Type, so we copy over
 // a trivial data.gen.go in order to build gen_data.go during "go run".
 //go:generate cp data.gen.go.triv data.gen.go
+//go:generate cp builtin.dfa.triv builtin.dfa
 //go:generate go run gen_data.go
 
 // A License describes a single license that can be recognized.

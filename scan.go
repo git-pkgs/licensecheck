@@ -6,21 +6,21 @@ package licensecheck
 
 import (
 	"bytes"
+	_ "embed"
 	"errors"
 	"fmt"
 	"regexp"
-	"runtime/debug"
 	"strings"
 	"sync"
 
 	"github.com/git-pkgs/licensecheck/internal/match"
 )
 
+//go:embed builtin.dfa
+var builtinDFAData []byte
+
 var (
-	// builtinScanner is initialized lazily,
-	// because init is fairly expensive,
-	// and delaying it lets us see the init
-	// in test cpu profiles.
+	// builtinScanner is initialized lazily.
 	builtinScanner     = new(Scanner)
 	builtinScannerOnce sync.Once
 )
@@ -122,14 +122,19 @@ var urlScanRE = regexp.MustCompile(`^(?i)https?://[-a-z0-9_.]+\.(org|com)(/[-a-z
 func (s *Scanner) Scan(text []byte) Coverage {
 	if s == builtinScanner {
 		builtinScannerOnce.Do(func() {
-			// Disable GC during init. Building the DFA allocates heavily
-			// (~274MB) and all of it stays live, so collecting mid-build
-			// is wasted work. Particularly noticeable with low GOGC or
-			// GOMEMLIMIT settings.
-			prev := debug.SetGCPercent(-1)
-			defer debug.SetGCPercent(prev)
-			if err := builtinScanner.init(BuiltinLicenses()); err != nil {
-				panic("licensecheck: initializing Scan: " + err.Error())
+			re, err := match.UnmarshalMultiLRE(builtinDFAData)
+			if err != nil {
+				panic("licensecheck: loading builtin DFA: " + err.Error())
+			}
+			builtinScanner.re = re
+			builtinScanner.urls = make(map[string]License)
+			for _, l := range BuiltinLicenses() {
+				if l.URL != "" {
+					builtinScanner.urls[l.URL] = l
+				}
+				if l.LRE != "" {
+					builtinScanner.licenses = append(builtinScanner.licenses, l)
+				}
 			}
 		})
 	}
