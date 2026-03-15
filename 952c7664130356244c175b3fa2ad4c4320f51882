@@ -1,0 +1,31 @@
+license.go
+  c105ee165db570dc 80
+internal/match/serialize_test.go
+  c105ee165db570dc 1-101
+gen_data.go
+  c105ee165db570dc 7,27,77-98
+internal/match/serialize.go
+  c105ee165db570dc 1-152
+scan.go
+  c105ee165db570dc 9,19-21,125-137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.12",
+  "base_commit_sha": "952c7664130356244c175b3fa2ad4c4320f51882",
+  "prompts": {
+    "c105ee165db570dc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "faf44ea4-6414-418c-b091-9bc86336606c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Andrew Nesbitt <andrewnez@gmail.com>",
+      "messages": [],
+      "total_additions": 301,
+      "total_deletions": 16,
+      "accepted_lines": 299,
+      "overriden_lines": 0
+    }
+  }
+}
